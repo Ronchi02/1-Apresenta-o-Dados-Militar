@@ -1,0 +1,61 @@
+**título:** Samuel Felipe Ronchi
+
+**formato:** html
+
+**editor:** visual
+
+**Gastos Militares no Mundo - Análise Gráfica**
+
+### **1. Painel Global (Gráfico de Linhas)**
+
+**Descrição:** Este gráfico mostra a evolução dos gastos militares (% do PIB) ao longo dos anos para sete países selecionados: Brasil, Estados Unidos, China, Japão, Alemanha, África do Sul e Índia. Cada linha representa um país, com cores distintas para facilitar a visualização. No final de cada linha, é exibida a sigla do país.
+
+**Análise:**
+
+-   Os Estados Unidos mantêm um dos mais altos níveis de gastos militares proporcionais ao PIB, com queda após 2010.
+
+-   A China apresenta aumento constante, refletindo sua crescente influência geopolítica.
+
+-   O Brasil tem gasto estável, relativamente baixo.
+
+-   A Alemanha e o Japão possuem níveis moderados e estáveis.
+
+-   A África do Sul mostra variações mais irregulares.
+
+-   A Índia apresenta leve crescimento ao longo do tempo.
+
+![](1º%20gráfico.png)
+
+### **2. Corte Transversal (Ano de Referência)**
+
+**Descrição:** Gráfico de barras mostrando os gastos militares como porcentagem do PIB para os países selecionados, em um ano específico (como 2022 ou o mais recente disponível).
+
+**Análise:**
+
+-   Os Estados Unidos lideram em proporção de gastos.
+
+-   A China e a Índia aparecem em seguida.
+
+-   O Brasil está na parte inferior do ranking.
+
+-   Diferenças significativas indicam diferentes prioridades políticas e estratégicas entre os países.
+
+    ![](2º%20Gráfico.png)
+
+### **3. Série Temporal Focada (Brasil)**
+
+**Descrição:** Este gráfico mostra a evolução dos gastos militares do Brasil ao longo do tempo, convertidos para valores em bilhões de reais. O eixo horizontal está em intervalos de 10 anos.
+
+**Análise:**
+
+-   O Brasil manteve um padrão relativamente constante de gastos militares.
+
+-   Pequenas variações refletem o contexto econômico e político de cada período.
+
+-   O gasto como proporção do PIB pode parecer pequeno, mas em valores absolutos representa uma fatia significativa dos investimentos do Estado.
+
+    ![](3º%20Gráfico.png)
+
+### **Conclusão**
+
+A análise dos gastos militares permitem observar tendências geopolíticas, prioridades de política externa e estratégias de segurança. O contraste entre países destaca o papel de cada um no cenário global e como alocam seus recursos diante de desafios regionais e globais.
