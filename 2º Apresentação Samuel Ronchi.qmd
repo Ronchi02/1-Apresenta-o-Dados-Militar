@@ -1,0 +1,212 @@
+---
+title: "Balança Comercial de Santa Catarina"
+subtitle: "Análise de Saldo, Exportação e Importação"
+author: "Samuel Ronchi"
+format: html
+editor: visual
+---
+
+```{r}
+#| label: setup-e-dados
+#| include: false   # Não inclui nenhum resultado do chunk no documento final
+#| echo: false      # Não mostra o código R em si
+#| message: false   # Oculta mensagens geradas pelo R
+#| warning: false   # Oculta avisos gerados pelo R
+
+# Definir explicitamente o mirror do CRAN para evitar erros de download
+options(repos = c(CRAN = "https://cran.rstudio.com/"))
+
+# --- Instalação e Carregamento de Pacotes ---
+# ATENÇÃO: As linhas 'install.packages()' abaixo foram comentadas com '#'.
+# Elas só precisam ser executadas UMA VEZ para instalar os pacotes na sua máquina.
+# Uma vez instalados, você pode mantê-las comentadas para evitar downloads repetitivos
+# e mensagens no console durante a renderização.
+
+# # install.packages("GetBCBData")
+# # install.packages("tidyverse")
+# # install.packages("scales")
+# # install.packages("plotly")
+
+# As linhas 'library()' carregam os pacotes instalados em cada sessão.
+library(GetBCBData)
+library(tidyverse) # Inclui dplyr (para mutate, rename) e ggplot2
+library(ggplot2)   # Para o gráfico base (se quiser usar ele)
+library(scales)    # Para formatação de eixos
+library(plotly)    # Para o gráfico interativo
+
+# --- Aquisição e Preparação dos Dados ---
+# IDs das séries do BCB
+my.ids <- c(
+  saldo = 13083,
+  exportacao = 13081,
+  importacao = 13082
+)
+
+# Funções para download seguro e com atraso
+download_bcb_series <- function(id, name, first_date, last_date) {
+  Sys.sleep(0.5) # Pequeno atraso para evitar sobrecarregar a API
+  gbcbd_get_series(
+    id = id,
+    first.date = first_date,
+    last.date = last_date,
+    format.data = 'long',
+    use.memoise = TRUE,
+    cache.path = tempdir(),
+    do.parallel = FALSE
+  ) %>%
+    rename(id = id.num) %>%
+    mutate(nome_serie = name)
+}
+
+# Tentar baixar cada série individualmente para melhor tratamento de erros
+# E combinar em um único dataframe
+df_saldo <- tryCatch(
+  download_bcb_series(my.ids["saldo"], "Saldo da Balança Comercial - SC", '2015-04-01', Sys.Date()),
+  error = function(e) {
+    message("Erro ao baixar Saldo (13083): ", e$message)
+    tibble(ref.date = as.Date(character()), value = numeric(), id = integer(), nome_serie = character())
+  }
+)
+
+df_exportacao <- tryCatch(
+  download_bcb_series(my.ids["exportacao"], "Exportação de Bens - SC", '2015-04-01', Sys.Date()),
+  error = function(e) {
+    message("Erro ao baixar Exportação (13081): ", e$message)
+    tibble(ref.date = as.Date(character()), value = numeric(), id = integer(), nome_serie = character())
+  }
+)
+
+df_importacao <- tryCatch(
+  download_bcb_series(my.ids["importacao"], "Importação de Bens - SC", '2015-04-01', Sys.Date()),
+  error = function(e) {
+    message("Erro ao baixar Importação (13082): ", e$message)
+    tibble(ref.date = as.Date(character()), value = numeric(), id = integer(), nome_serie = character())
+  }
+)
+
+# Unir todos os dataframes baixados
+df_all_data <- bind_rows(df_saldo, df_exportacao, df_importacao) %>%
+  # Garantir que as séries com erro não causem problemas e que os valores sejam numéricos
+  filter(!is.na(value))
+
+
+# Define as cores para cada série no gráfico
+series_colors <- c(
+  "Saldo da Balança Comercial - SC" = "black",
+  "Exportação de Bens - SC" = "green",
+  "Importação de Bens - SC" = "red"
+)
+
+# Adiciona a coluna com o valor formatado para o tooltip do Plotly
+df_all_data_formatted <- df_all_data %>%
+  mutate(
+    value_formatted = paste0(
+      "US$ ",
+      format(value / 1e6, big.mark = ".", decimal.mark = ",", nsmall = 2),
+      " Milhões"
+    )
+  )
+```
+
+## Apresentação Gráfica da Balança Comercial de Santa Catarina
+
+Este documento apresenta uma análise detalhada da balança comercial do estado de Santa Catarina, focando na evolução do **saldo**, porém, para uma melhor visualização do saldo e poder fazer sua análise decidi colocar tambem as exportações e importações ao longo do tempo.
+
+### Descrição e Justificativa do Gráfico de Linhas
+
+O gráfico a seguir ilustra a série temporal das três variáveis-chave da balança comercial de Santa Catarina: o saldo, o valor total das exportações e o valor total das importações. Cada linha representa uma dessas métricas, permitindo uma visualização clara das tendências e flutuações desde abril de 2015 até a data mais recente disponível.
+
+O **saldo da balança comercial** é obtido pela diferença entre o valor exportado e o valor importado. Os valores de exportação e importação são **FOB (Free On Board)**, ou seja, não incluem os custos internacionais de transporte e seguro, focando no valor da mercadoria no porto de embarque.
+
+Esta representação é essencial para compreender a dinâmica comercial do estado, identificar períodos de superávit ou déficit e observar o impacto de fatores econômicos e políticos na movimentação de bens.
+
+```{r}
+#| label: plotly-chart
+#| echo: false    # Não mostra o código R deste chunk
+#| message: false  # Oculta mensagens específicas deste chunk
+#| warning: false  # Oculta avisos específicos deste chunk
+#| fig-width: 10   # Largura da figura no documento HTML final
+#| fig-height: 6   # Altura da figura no documento HTML final
+
+# --- Construção do Gráfico Plotly Interativo ---
+# Inicia um objeto Plotly vazio
+p_direct_plotly <- plot_ly()
+
+# Adiciona cada linha como um "trace" separado
+# Verificar se df_all_data_formatted tem dados antes de tentar plotar
+if (nrow(df_all_data_formatted) > 0) {
+  for (s_name in names(series_colors)) {
+    df_subset <- df_all_data_formatted %>% filter(nome_serie == s_name)
+
+    # Só adiciona a trace se houver dados para a série
+    if (nrow(df_subset) > 0) {
+      p_direct_plotly <- p_direct_plotly %>%
+        add_trace(
+          data = df_subset,
+          x = ~ref.date,
+          y = ~value,
+          type = 'scatter',
+          mode = 'lines',
+          name = s_name, # Usado para a legenda e o nome da série no tooltip unificado
+          line = list(color = series_colors[s_name], width = 2),
+          customdata = ~value_formatted, # Passa o valor formatado para o tooltip
+          # Configuração do hovertemplate para um tooltip limpo e informativo
+          hovertemplate = paste0(
+            "<b>Data: %{x|%d/%m/%Y}</b><br>", # Data formatada
+            "%{customdata}<extra></extra>"   # Valor formatado e remove infos extras do plotly
+          )
+        )
+    }
+  }
+} else {
+  # Adiciona um layout com uma mensagem se não houver dados para plotar
+  p_direct_plotly <- p_direct_plotly %>%
+    layout(
+      annotations = list(
+        text = "Não foi possível carregar os dados para o gráfico.",
+        xref = "paper", yref = "paper",
+        x = 0.5, y = 0.5, showarrow = FALSE, font = list(size = 20)
+      )
+    )
+}
+
+
+# Configurações de Layout do Gráfico Plotly
+p_final_interactive_direct <- p_direct_plotly %>%
+  layout(
+    title = list(
+      text = 'Balança Comercial de Santa Catarina: Saldo, Exportação e Importação',
+      x = 0.5, # Centraliza o título horizontalmente
+      y = 0.95 # Posição vertical do título
+    ),
+    annotations = list( # Adiciona o subtítulo dinâmico de período como uma anotação
+      x = 0.5, y = 1.05, xref = "paper", yref = "paper",
+      text = paste0(format(min(df_all_data$ref.date), "%d/%m/%Y"), ' a ', format(max(df_all_data$ref.date), "%d/%m/%Y")),
+      showarrow = FALSE, font = list(size = 12)
+    ),
+    xaxis = list(
+      title = 'Data',
+      showgrid = TRUE, gridcolor = "lightgrey", gridwidth = 1
+    ),
+    yaxis = list(
+      title = 'Valor (US$ Milhões)',
+      showgrid = TRUE, gridcolor = "lightgrey", gridwidth = 1,
+      tickprefix = "US$ ", # Prefixo para os ticks do eixo Y
+      ticksuffix = " Milhões", # Sufixo para os ticks do eixo Y
+      tickformat = ".2s" # Formato de escala curta para números grandes (ex: 1M, 2M)
+    ),
+    legend = list(
+      orientation = 'h', # Legenda horizontal
+      xanchor = "center", x = 0.5, # Centraliza a legenda
+      y = -0.15 # Posição da legenda abaixo do gráfico
+    ),
+    hovermode = 'x unified' # Mantém o hover unificado para mostrar dados de todas as linhas na mesma data
+  )
+
+# Exibir o gráfico interativo no documento
+p_final_interactive_direct
+```
+
+## Conclusão
+
+A análise da balança comercial de Santa Catarina, por meio da visualização interativa do saldo, exportações e importações, é fundamental para compreender as tendências econômicas do estado. Ela permite observar a dinâmica entre a venda e a compra de bens no cenário global, fornecendo insights cruciais para o planejamento e desenvolvimento econômico.
