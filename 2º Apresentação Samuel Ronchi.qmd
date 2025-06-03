@@ -1,0 +1,77 @@
+---
+title: "Balança Comercial de Santa Catarina"
+subtitle: "Análise de Saldo, Exportação e Importação"
+author: "Samuel Ronchi"
+format: html
+editor: visual
+---
+
+```{r}
+#| label: setup-e-dados
+#| include: false   # Não inclui nenhum resultado do chunk no documento final
+#| echo: false      # Não mostra o código R em si
+#| message: false   # Oculta mensagens geradas pelo R
+#| warning: false   # Oculta avisos gerados pelo R
+
+library(GetBCBData)
+library(tidyverse) 
+library(gganimate)
+
+# id endividamento das familias
+my_id <- c("Balança Comercial - SC" = 13083, 
+           "Importação - SC" = 13082, 
+           "Exportação - SC" = 13081)
+
+
+# criando e tratando a tabela df_endiv
+df <-  gbcbd_get_series(
+  id = my_id,
+  first.date = "2015-04-01",
+  last.date = Sys.Date(),
+  format.data = "long",
+  use.memoise = TRUE,
+  cache.path = tempdir(),
+  do.parallel = FALSE
+)
+
+
+
+
+```
+
+## Apresentação Gráfica da Balança Comercial de Santa Catarina
+
+Este documento apresenta uma análise detalhada da balança comercial do estado de Santa Catarina, focando na evolução do **saldo**, porém, para uma melhor visualização do saldo e poder fazer sua análise decidi colocar tambem as exportações e importações ao longo do tempo.
+
+### Descrição e Justificativa do Gráfico de Linhas
+
+O gráfico a seguir ilustra a série temporal das três variáveis-chave da balança comercial de Santa Catarina: o saldo, o valor total das exportações e o valor total das importações. Cada linha representa uma dessas métricas, permitindo uma visualização clara das tendências e flutuações desde abril de 2015 até a data mais recente disponível.
+
+O **saldo da balança comercial** é obtido pela diferença entre o valor exportado e o valor importado. Os valores de exportação e importação são **FOB (Free On Board)**, ou seja, não incluem os custos internacionais de transporte e seguro, focando no valor da mercadoria no porto de embarque.
+
+Esta representação é essencial para compreender a dinâmica comercial do estado, identificar períodos de superávit ou déficit e observar o impacto de fatores econômicos e políticos na movimentação de bens.
+
+```{r}
+#| label: grafico
+#| echo: false      # Não mostra o código R em si
+#| message: false   # Oculta mensagens geradas pelo R
+#| warning: false   # Oculta avisos gerados pelo R
+
+df |>
+  ggplot(aes(x = ref.date, y = value, colour = series.name)) +
+  geom_line(linewidth = 1) +
+  geom_point(color = "darkred", size = 2) +
+  labs(
+    title = 'Balança Comercial de Santa Catarina',
+    subtitle = 'Data: {frame_along}',
+    x = 'Data',
+    y = 'Saldo US$ ',
+  ) +
+  theme_minimal() +
+  transition_reveal(ref.date)
+
+```
+
+## Conclusão
+
+A análise da balança comercial de Santa Catarina, por meio da visualização interativa do saldo, exportações e importações, é fundamental para compreender as tendências econômicas do estado. Ela permite observar a dinâmica entre a venda e a compra de bens no cenário global, fornecendo insights cruciais para o planejamento e desenvolvimento econômico.
